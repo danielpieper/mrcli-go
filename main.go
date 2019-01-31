@@ -10,7 +10,7 @@ func main() {
 	mergeRequests := client.GetMergeRequests()
 	for _, mergeRequest := range mergeRequests {
 		fmt.Println(mergeRequest.Title)
-		approvals := client.GetMergeRequestApprovals(mergeRequest)
-		fmt.Println(approvals.State)
+		// approvals := client.GetMergeRequestApprovals(mergeRequest)
+		// fmt.Println(approvals.State)
 	}
 }

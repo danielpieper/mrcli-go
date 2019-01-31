@@ -28,7 +28,7 @@ func NewClient(httpClient *http.Client) *Client {
 }
 
 // GetMergeRequests is exported
-func (client *Client) GetMergeRequests() []*g.MergeRequest {
+func (client *Client) GetMergeRequests() []*g.MergeRequestApprovals {
 	lastMonth := time.Now().AddDate(0, -1, 0)
 	mergeRequestOptions := &g.ListMergeRequestsOptions{
 		State:        g.String("opened"),
@@ -41,14 +41,34 @@ func (client *Client) GetMergeRequests() []*g.MergeRequest {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return mergeRequests
+	mergeRequestCount := len(mergeRequests)
+
+	jobs := make(chan *g.MergeRequest, mergeRequestCount)
+	results := make(chan *g.MergeRequestApprovals, mergeRequestCount)
+	go client.approvalsWorker(jobs, results)
+	go client.approvalsWorker(jobs, results)
+
+	for _, mergeRequest := range mergeRequests {
+		jobs <- mergeRequest
+	}
+	close(jobs)
+
+	var approvals []*g.MergeRequestApprovals
+	for i := 0; i < mergeRequestCount; i++ {
+		approvals = append(approvals, <-results)
+	}
+
+	return approvals
 }
 
-// GetMergeRequestApprovals is exported
-func (client *Client) GetMergeRequestApprovals(mergeRequest *g.MergeRequest) *g.MergeRequestApprovals {
-	approvals, _, err := client.gitlabClient.MergeRequests.GetMergeRequestApprovals(mergeRequest.ProjectID, mergeRequest.IID)
-	if err != nil {
-		log.Fatal(err)
+func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<- *g.MergeRequestApprovals) {
+	for mergeRequest := range jobs {
+		approvals, _, err := client.gitlabClient.MergeRequests.GetMergeRequestApprovals(mergeRequest.ProjectID, mergeRequest.IID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results <- approvals
+		// mockApproval := g.MergeRequestApprovals{Title: mergeRequest.Title}
+		// results <- &mockApproval
 	}
-	return approvals
 }
