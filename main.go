@@ -10,7 +10,6 @@ func main() {
 	pendingRequests := client.GetPendingRequests()
 	for _, pr := range pendingRequests {
 		fmt.Println(pr.Request.Title)
-		// approvals := client.GetMergeRequestApprovals(mergeRequest)
-		// fmt.Println(approvals.State)
+		fmt.Println(pr.Request.WebURL)
 	}
 }

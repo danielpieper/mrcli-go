@@ -41,11 +41,18 @@ func (client *Client) GetPendingRequests() []*PendingRequest {
 		OrderBy:      g.String("created_at"),
 		Scope:        g.String("all"),
 		CreatedAfter: &lastMonth,
+		ListOptions:  g.ListOptions{Page: 1, PerPage: 100},
 	}
 
-	mergeRequests, _, err := client.gitlabClient.MergeRequests.ListMergeRequests(mergeRequestOptions)
+	result, _, err := client.gitlabClient.MergeRequests.ListMergeRequests(mergeRequestOptions)
 	if err != nil {
 		log.Fatal(err)
+	}
+	var mergeRequests []*g.MergeRequest
+	for _, mergeRequest := range result {
+		if !mergeRequest.WorkInProgress {
+			mergeRequests = append(mergeRequests, mergeRequest)
+		}
 	}
 	mergeRequestCount := len(mergeRequests)
 
@@ -61,7 +68,10 @@ func (client *Client) GetPendingRequests() []*PendingRequest {
 
 	var approvals []*PendingRequest
 	for i := 0; i < mergeRequestCount; i++ {
-		approvals = append(approvals, <-results)
+		result := <-results
+		if result.Approvals.ApprovalsLeft > 0 {
+			approvals = append(approvals, result)
+		}
 	}
 
 	return approvals
@@ -74,7 +84,5 @@ func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<
 			log.Fatal(err)
 		}
 		results <- &PendingRequest{Request: mergeRequest, Approvals: approvals}
-		// mockApproval := g.MergeRequestApprovals{Title: mergeRequest.Title}
-		// results <- &mockApproval
 	}
 }
