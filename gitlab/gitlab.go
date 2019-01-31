@@ -28,9 +28,23 @@ func NewClient(httpClient *http.Client) *Client {
 		gClient.SetBaseURL(baseURL)
 	}
 
-	c := &Client{gitlabClient: gClient}
+	return &Client{gitlabClient: gClient}
+}
 
-	return c
+// GetProjects fetches a list of up to 100 active gitlab projects
+// which have merge requests enabled
+func (client *Client) GetProjects() []*g.Project {
+	listProjectOptions := &g.ListProjectsOptions{
+		Archived:                 g.Bool(false),
+		WithMergeRequestsEnabled: g.Bool(true),
+		ListOptions:              g.ListOptions{Page: 1, PerPage: 100},
+	}
+	result, _, err := client.gitlabClient.Projects.ListProjects(listProjectOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result
 }
 
 // GetPendingRequests is exported
