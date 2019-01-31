@@ -15,6 +15,7 @@ type Client struct {
 
 // PendingRequest is exported
 type PendingRequest struct {
+	Project   *g.Project
 	Request   *g.MergeRequest
 	Approvals *g.MergeRequestApprovals
 }
@@ -31,24 +32,18 @@ func NewClient(httpClient *http.Client) *Client {
 	return &Client{gitlabClient: gClient}
 }
 
-// GetProjects fetches a list of up to 100 active gitlab projects
-// which have merge requests enabled
-func (client *Client) GetProjects() []*g.Project {
+func (client *Client) getProjects() ([]*g.Project, error) {
 	listProjectOptions := &g.ListProjectsOptions{
 		Archived:                 g.Bool(false),
 		WithMergeRequestsEnabled: g.Bool(true),
 		ListOptions:              g.ListOptions{Page: 1, PerPage: 100},
 	}
 	result, _, err := client.gitlabClient.Projects.ListProjects(listProjectOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	return result
+	return result, err
 }
 
-// GetPendingRequests is exported
-func (client *Client) GetPendingRequests() []*PendingRequest {
+func (client *Client) getMergeRequests() ([]*g.MergeRequest, error) {
 	lastMonth := time.Now().AddDate(0, -1, 0)
 	mergeRequestOptions := &g.ListMergeRequestsOptions{
 		State:        g.String("opened"),
@@ -60,7 +55,7 @@ func (client *Client) GetPendingRequests() []*PendingRequest {
 
 	result, _, err := client.gitlabClient.MergeRequests.ListMergeRequests(mergeRequestOptions)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var mergeRequests []*g.MergeRequest
 	for _, mergeRequest := range result {
@@ -68,7 +63,22 @@ func (client *Client) GetPendingRequests() []*PendingRequest {
 			mergeRequests = append(mergeRequests, mergeRequest)
 		}
 	}
+	return mergeRequests, nil
+}
+
+// GetPendingRequests fetches a list of up to 100 pending
+// merge requests and adds project and approvals information
+func (client *Client) GetPendingRequests() ([]*PendingRequest, error) {
+	mergeRequests, err := client.getMergeRequests()
+	if err != nil {
+		return nil, err
+	}
 	mergeRequestCount := len(mergeRequests)
+
+	projects, err := client.getProjects()
+	if err != nil {
+		return nil, err
+	}
 
 	jobs := make(chan *g.MergeRequest, mergeRequestCount)
 	results := make(chan *PendingRequest, mergeRequestCount)
@@ -84,11 +94,17 @@ func (client *Client) GetPendingRequests() []*PendingRequest {
 	for i := 0; i < mergeRequestCount; i++ {
 		result := <-results
 		if result.Approvals.ApprovalsLeft > 0 {
+			for _, project := range projects {
+				if project.ID == result.Request.ProjectID {
+					result.Project = project
+					break
+				}
+			}
 			approvals = append(approvals, result)
 		}
 	}
 
-	return approvals
+	return approvals, nil
 }
 
 func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<- *PendingRequest) {

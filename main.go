@@ -7,12 +7,15 @@ import (
 
 func main() {
 	client := gitlab.NewClient(nil)
-	projects := client.GetProjects()
-	fmt.Println(projects)
 
-	// pendingRequests := client.GetPendingRequests()
-	// for _, pr := range pendingRequests {
-	// 	fmt.Println(pr.Request.Title)
-	// 	fmt.Println(pr.Request.WebURL)
-	// }
+	pendingRequests, err := client.GetPendingRequests()
+	if err != nil {
+		fmt.Println("An error occured: %v", err)
+		return
+	}
+	for _, pr := range pendingRequests {
+		fmt.Println(pr.Request.Title)
+		fmt.Println(pr.Request.WebURL)
+		fmt.Println(pr.Project.Name)
+	}
 }
