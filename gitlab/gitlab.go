@@ -13,6 +13,12 @@ type Client struct {
 	gitlabClient *g.Client
 }
 
+// PendingRequest is exported
+type PendingRequest struct {
+	Request   *g.MergeRequest
+	Approvals *g.MergeRequestApprovals
+}
+
 // NewClient is exported
 func NewClient(httpClient *http.Client) *Client {
 	token := os.Getenv("GITLAB_TOKEN")
@@ -27,8 +33,8 @@ func NewClient(httpClient *http.Client) *Client {
 	return c
 }
 
-// GetMergeRequests is exported
-func (client *Client) GetMergeRequests() []*g.MergeRequestApprovals {
+// GetPendingRequests is exported
+func (client *Client) GetPendingRequests() []*PendingRequest {
 	lastMonth := time.Now().AddDate(0, -1, 0)
 	mergeRequestOptions := &g.ListMergeRequestsOptions{
 		State:        g.String("opened"),
@@ -44,7 +50,7 @@ func (client *Client) GetMergeRequests() []*g.MergeRequestApprovals {
 	mergeRequestCount := len(mergeRequests)
 
 	jobs := make(chan *g.MergeRequest, mergeRequestCount)
-	results := make(chan *g.MergeRequestApprovals, mergeRequestCount)
+	results := make(chan *PendingRequest, mergeRequestCount)
 	go client.approvalsWorker(jobs, results)
 	go client.approvalsWorker(jobs, results)
 
@@ -53,7 +59,7 @@ func (client *Client) GetMergeRequests() []*g.MergeRequestApprovals {
 	}
 	close(jobs)
 
-	var approvals []*g.MergeRequestApprovals
+	var approvals []*PendingRequest
 	for i := 0; i < mergeRequestCount; i++ {
 		approvals = append(approvals, <-results)
 	}
@@ -61,13 +67,13 @@ func (client *Client) GetMergeRequests() []*g.MergeRequestApprovals {
 	return approvals
 }
 
-func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<- *g.MergeRequestApprovals) {
+func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<- *PendingRequest) {
 	for mergeRequest := range jobs {
 		approvals, _, err := client.gitlabClient.MergeRequests.GetMergeRequestApprovals(mergeRequest.ProjectID, mergeRequest.IID)
 		if err != nil {
 			log.Fatal(err)
 		}
-		results <- approvals
+		results <- &PendingRequest{Request: mergeRequest, Approvals: approvals}
 		// mockApproval := g.MergeRequestApprovals{Title: mergeRequest.Title}
 		// results <- &mockApproval
 	}

@@ -7,9 +7,9 @@ import (
 
 func main() {
 	client := gitlab.NewClient(nil)
-	mergeRequests := client.GetMergeRequests()
-	for _, mergeRequest := range mergeRequests {
-		fmt.Println(mergeRequest.Title)
+	pendingRequests := client.GetPendingRequests()
+	for _, pr := range pendingRequests {
+		fmt.Println(pr.Request.Title)
 		// approvals := client.GetMergeRequestApprovals(mergeRequest)
 		// fmt.Println(approvals.State)
 	}
