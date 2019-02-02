@@ -9,5 +9,6 @@ func main() {
 	var rootCmd = &cobra.Command{Use: "app"}
 	rootCmd.AddCommand(cmd.OverviewCmd)
 	rootCmd.AddCommand(cmd.ApproverCmd)
+	rootCmd.AddCommand(cmd.ProjectCmd)
 	rootCmd.Execute()
 }

@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-// ApproverCmd is exported
-var ApproverCmd = &cobra.Command{
-	Use:     "approver",
-	Aliases: []string{"a"},
-	Short:   "Show pending merge requests by user",
-	Long:    "This displays a list of pending merge requests by user",
-	Args:    cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, userNames []string) {
+// ProjectCmd is exported
+var ProjectCmd = &cobra.Command{
+	Use:     "project",
+	Aliases: []string{"p"},
+	Short:   "Show pending merge requests by project",
+	Long:    "This displays a list of pending merge requests by project",
+	Args:    cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, projectNames []string) {
 		client := gitlab.NewClient(nil)
 
 		pendingRequests, err := client.PendingRequests()
@@ -24,29 +24,17 @@ var ApproverCmd = &cobra.Command{
 			return
 		}
 
-		if len(userNames) == 0 {
-			user, err := client.AuthenticatedUser()
-			if err != nil {
-				fmt.Println("An error occured:", err)
-				return
-			}
-			userNames = append(userNames, user.Username)
-		}
-
 		filteredPendingRequests := []gitlab.PendingRequest{}
 		for _, pr := range pendingRequests {
-		filterUser:
-			for _, approverName := range pr.ApproverNames() {
-				for _, userName := range userNames {
-					if approverName == userName {
-						filteredPendingRequests = append(filteredPendingRequests, *pr)
-						break filterUser
-					}
+			for _, p := range projectNames {
+				if p == pr.Project.Name {
+					filteredPendingRequests = append(filteredPendingRequests, *pr)
+					break
 				}
 			}
 		}
 
-		fmt.Printf("%d Pending merge requests for approvers %v:\n\n", len(filteredPendingRequests), userNames)
+		fmt.Printf("%d Pending merge requests for projects %v:\n\n", len(filteredPendingRequests), projectNames)
 		for _, pr := range filteredPendingRequests {
 			fmt.Println(pr.Request.Author.Username)
 			fmt.Printf("[%v] %v\n", pr.Project.Name, pr.Request.Title)
