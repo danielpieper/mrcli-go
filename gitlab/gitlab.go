@@ -13,13 +13,6 @@ type Client struct {
 	gitlabClient *g.Client
 }
 
-// PendingRequest is exported
-type PendingRequest struct {
-	Project   *g.Project
-	Request   *g.MergeRequest
-	Approvals *g.MergeRequestApprovals
-}
-
 // NewClient is exported
 func NewClient(httpClient *http.Client) *Client {
 	token := os.Getenv("GITLAB_TOKEN")
@@ -66,9 +59,14 @@ func (client *Client) getMergeRequests() ([]*g.MergeRequest, error) {
 	return mergeRequests, nil
 }
 
-// GetPendingRequests fetches a list of up to 100 pending
+func (client *Client) AuthenticatedUser() (*g.User, error) {
+	user, _, err := client.gitlabClient.Users.GetAuthenticatedUser()
+	return user, err
+}
+
+// PendingRequests fetches a list of up to 100 pending
 // merge requests and adds project and approvals information
-func (client *Client) GetPendingRequests() ([]*PendingRequest, error) {
+func (client *Client) PendingRequests() ([]*PendingRequest, error) {
 	mergeRequests, err := client.getMergeRequests()
 	if err != nil {
 		return nil, err
@@ -115,4 +113,19 @@ func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<
 		}
 		results <- &PendingRequest{Request: mergeRequest, Approvals: approvals}
 	}
+}
+
+// PendingRequest is exported
+type PendingRequest struct {
+	Project   *g.Project
+	Request   *g.MergeRequest
+	Approvals *g.MergeRequestApprovals
+}
+
+// ApproverNames is exported
+func (pr *PendingRequest) ApproverNames() (approverNames []string) {
+	for _, approver := range pr.Approvals.Approvers {
+		approverNames = append(approverNames, approver.User.Username)
+	}
+	return
 }
