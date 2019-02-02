@@ -24,11 +24,10 @@ var OverviewCmd = &cobra.Command{
 			return
 		}
 
-		projectMap := createProjectMap(pendingRequests)
-		rankedHeaders := rankByMergeRequestCount(projectMap)
+		rankedProjects := rankProjectsByPendingRequests(pendingRequests)
 		headers := []string{"Approver"}
-		for _, h := range rankedHeaders {
-			headers = append(headers, h.Key)
+		for _, h := range rankedProjects {
+			headers = append(headers, h.name)
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
@@ -37,8 +36,8 @@ var OverviewCmd = &cobra.Command{
 		approverMap := createApproverMap(pendingRequests)
 		for username, projectMap := range approverMap {
 			row := []string{username}
-			for _, h := range rankedHeaders {
-				pendingRequestCount, ok := projectMap[h.Key]
+			for _, h := range rankedProjects {
+				pendingRequestCount, ok := projectMap[h.name]
 				value := "0"
 				if ok {
 					value = strconv.Itoa(pendingRequestCount)
@@ -69,40 +68,42 @@ func createApproverMap(pendingRequests []*gitlab.PendingRequest) map[string]map[
 	return approverMap
 }
 
-func createProjectMap(pendingRequests []*gitlab.PendingRequest) map[string]int {
-	projectMap := map[string]int{}
+func rankProjectsByPendingRequests(pendingRequests []*gitlab.PendingRequest) (projects projectRanking) {
 	for _, pr := range pendingRequests {
 		project := pr.Project.Name
-		_, ok := projectMap[project]
-		if !ok {
-			projectMap[project] = 0
+		projects.increment("Total", 1)
+		projects.increment(project, 1)
+	}
+	sort.Sort(sort.Reverse(projects))
+	return
+}
+
+type projectRank struct {
+	name  string
+	value int
+}
+
+type projectRanking []projectRank
+
+func (p projectRanking) Len() int           { return len(p) }
+func (p projectRanking) Less(i, j int) bool { return p[i].value < p[j].value }
+func (p projectRanking) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func (p *projectRanking) increment(name string, value int) {
+	v, ok := p.get(name)
+	if ok {
+		v.value += value
+		return
+	}
+	v = &projectRank{name, value}
+	*p = append(*p, *v)
+}
+
+func (p projectRanking) get(key string) (*projectRank, bool) {
+	for _, v := range p {
+		if v.name == key {
+			return &v, true
 		}
-		projectMap[project]++
-		projectMap["Total"]++
 	}
-	return projectMap
+	return &projectRank{}, false
 }
-
-func rankByMergeRequestCount(data map[string]int) PairList {
-	pl := make(PairList, len(data))
-	i := 0
-	for k, v := range data {
-		pl[i] = Pair{k, v}
-		i++
-	}
-	sort.Sort(sort.Reverse(pl))
-	return pl
-}
-
-// Pair is exported
-type Pair struct {
-	Key   string
-	Value int
-}
-
-// PairList is exported
-type PairList []Pair
-
-func (p PairList) Len() int           { return len(p) }
-func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
-func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
