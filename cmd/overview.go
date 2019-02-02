@@ -12,9 +12,10 @@ import (
 
 // OverviewCmd is exported
 var OverviewCmd = &cobra.Command{
-	Use:   "overview",
-	Short: "Show pending merge requests overview",
-	Long:  "This displays a table by project and approver sorted by the most pending merge requests",
+	Use:     "overview",
+	Aliases: []string{"o"},
+	Short:   "Show pending merge requests overview",
+	Long:    "This displays a table by project and approver sorted by the most pending merge requests",
 	Run: func(cmd *cobra.Command, args []string) {
 		client := gitlab.NewClient(nil)
 
