@@ -62,6 +62,7 @@ func createApproverMap(pendingRequests []*gitlab.PendingRequest) map[string]map[
 				projectMap = make(map[string]int)
 			}
 			projectMap[project]++
+			projectMap["Total"]++
 			approverMap[username] = projectMap
 		}
 	}
@@ -77,6 +78,7 @@ func createProjectMap(pendingRequests []*gitlab.PendingRequest) map[string]int {
 			projectMap[project] = 0
 		}
 		projectMap[project]++
+		projectMap["Total"]++
 	}
 	return projectMap
 }
