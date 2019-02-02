@@ -59,8 +59,9 @@ func (client *Client) getMergeRequests() ([]*g.MergeRequest, error) {
 	return mergeRequests, nil
 }
 
+// AuthenticatedUser is exported
 func (client *Client) AuthenticatedUser() (*g.User, error) {
-	user, _, err := client.gitlabClient.Users.GetAuthenticatedUser()
+	user, _, err := client.gitlabClient.Users.CurrentUser()
 	return user, err
 }
 
