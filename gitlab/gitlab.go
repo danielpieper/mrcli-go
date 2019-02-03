@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -71,7 +72,7 @@ func (client *Client) AuthenticatedUser() (*g.User, error) {
 
 // PendingRequests fetches a list of up to 100 pending
 // merge requests and adds project and approvals information
-func (client *Client) PendingRequests() ([]*PendingRequest, error) {
+func (client *Client) PendingRequests() (RankedPendingRequests, error) {
 	mergeRequests, err := client.getMergeRequests()
 	if err != nil {
 		return nil, err
@@ -93,7 +94,7 @@ func (client *Client) PendingRequests() ([]*PendingRequest, error) {
 	}
 	close(jobs)
 
-	var approvals []*PendingRequest
+	approvals := RankedPendingRequests{}
 	for i := 0; i < mergeRequestCount; i++ {
 		result := <-results
 		if result.Approvals.ApprovalsLeft > 0 {
@@ -106,6 +107,7 @@ func (client *Client) PendingRequests() ([]*PendingRequest, error) {
 			approvals = append(approvals, result)
 		}
 	}
+	sort.Sort(approvals)
 
 	return approvals, nil
 }
@@ -119,6 +121,15 @@ func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<
 		results <- &PendingRequest{Request: mergeRequest, Approvals: approvals}
 	}
 }
+
+// RankedPendingRequests is exported
+type RankedPendingRequests []*PendingRequest
+
+func (r RankedPendingRequests) Len() int { return len(r) }
+func (r RankedPendingRequests) Less(i, j int) bool {
+	return r[i].Request.CreatedAt.Before(*r[j].Request.CreatedAt)
+}
+func (r RankedPendingRequests) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
 // PendingRequest is exported
 type PendingRequest struct {
@@ -164,13 +175,24 @@ func humanReadableTimeDiff(value time.Time) string {
 
 	age := []string{}
 
-	days := math.Floor(duration.Hours() / 24)
-	if days > 0 {
+	weeks := math.Floor(duration.Hours() / 24 / 7)
+	if weeks == 1 {
+		age = append(age, "1 week")
+	} else if weeks > 1 {
+		age = append(age, fmt.Sprintf("%d weeks", int(weeks)))
+	}
+
+	days := math.Floor(duration.Hours()/24 - weeks*7)
+	if days == 1 {
+		age = append(age, "1 day")
+	} else if days > 1 {
 		age = append(age, fmt.Sprintf("%d days", int(days)))
 	}
 
-	hours := int(math.Floor(duration.Hours() - days*24))
-	if hours > 0 {
+	hours := int(math.Floor(duration.Hours() - days*24 - weeks*7*24))
+	if hours == 1 {
+		age = append(age, "1 hour")
+	} else if hours > 1 {
 		age = append(age, fmt.Sprintf("%d hours", hours))
 	}
 	age = append(age, "ago")

@@ -51,9 +51,9 @@ var ApproverCmd = &cobra.Command{
 			fmt.Println(color.LightGray(pr.Request.Author.Username))
 			fmt.Printf("[%v] %v\n", pr.Project.Name, pr.Color(pr.Request.Title))
 			fmt.Println(pr.Request.WebURL)
-			fmt.Println(color.LightGray("Created:"), pr.HumanReadableCreatedAtDiff())
-			fmt.Println(color.LightGray("Updated:"), pr.HumanReadableUpdatedAtDiff())
-			fmt.Println(color.LightGray("Approvers:"), strings.Join(pr.ApproverNames(), ", "))
+			fmt.Println(color.LightGray(fmt.Sprintf("%10s", "Created:")), pr.HumanReadableCreatedAtDiff())
+			fmt.Println(color.LightGray(fmt.Sprintf("%10s", "Updated:")), pr.HumanReadableUpdatedAtDiff())
+			fmt.Println(color.LightGray(fmt.Sprintf("%10s", "Approvers:")), strings.Join(pr.ApproverNames(), ", "))
 			fmt.Println()
 		}
 	},
