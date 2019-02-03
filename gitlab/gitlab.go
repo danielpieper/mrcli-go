@@ -1,10 +1,14 @@
 package gitlab
 
 import (
+	"fmt"
+	"github.com/bclicn/color"
 	g "github.com/xanzy/go-gitlab"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -129,4 +133,47 @@ func (pr *PendingRequest) ApproverNames() (approverNames []string) {
 		approverNames = append(approverNames, approver.User.Username)
 	}
 	return
+}
+
+// Color is exported
+func (pr *PendingRequest) Color(value string) string {
+	age := math.Round(time.Since(*pr.Request.CreatedAt).Hours() / 24)
+
+	switch {
+	case age > 2:
+		return color.Red(value)
+	case age > 1:
+		return color.Yellow(value)
+	}
+
+	return color.Green(value)
+}
+
+// HumanReadableCreatedAtDiff is exported
+func (pr *PendingRequest) HumanReadableCreatedAtDiff() string {
+	return humanReadableTimeDiff(*pr.Request.CreatedAt)
+}
+
+// HumanReadableUpdatedAtDiff is exported
+func (pr *PendingRequest) HumanReadableUpdatedAtDiff() string {
+	return humanReadableTimeDiff(*pr.Request.UpdatedAt)
+}
+
+func humanReadableTimeDiff(value time.Time) string {
+	duration := time.Since(value)
+
+	age := []string{}
+
+	days := math.Floor(duration.Hours() / 24)
+	if days > 0 {
+		age = append(age, fmt.Sprintf("%d days", int(days)))
+	}
+
+	hours := int(math.Floor(duration.Hours() - days*24))
+	if hours > 0 {
+		age = append(age, fmt.Sprintf("%d hours", hours))
+	}
+	age = append(age, "ago")
+
+	return strings.Join(age, " ")
 }

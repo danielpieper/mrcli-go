@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/bclicn/color"
 	"github.com/danielpieper/mrcli-go/gitlab"
 	"github.com/spf13/cobra"
 	"strings"
-	"time"
 )
 
 // ApproverCmd is exported
@@ -48,12 +48,12 @@ var ApproverCmd = &cobra.Command{
 
 		fmt.Printf("%d Pending merge requests for approvers %v:\n\n", len(filteredPendingRequests), userNames)
 		for _, pr := range filteredPendingRequests {
-			fmt.Println(pr.Request.Author.Username)
-			fmt.Printf("[%v] %v\n", pr.Project.Name, pr.Request.Title)
+			fmt.Println(color.LightGray(pr.Request.Author.Username))
+			fmt.Printf("[%v] %v\n", pr.Project.Name, pr.Color(pr.Request.Title))
 			fmt.Println(pr.Request.WebURL)
-			fmt.Println("Created:", time.Since(*pr.Request.CreatedAt).Round(time.Duration(time.Hour)))
-			fmt.Println("Updated:", time.Since(*pr.Request.UpdatedAt).Round(time.Duration(time.Hour)))
-			fmt.Println("Approvers:", strings.Join(pr.ApproverNames(), ", "))
+			fmt.Println(color.LightGray("Created:"), pr.HumanReadableCreatedAtDiff())
+			fmt.Println(color.LightGray("Updated:"), pr.HumanReadableUpdatedAtDiff())
+			fmt.Println(color.LightGray("Approvers:"), strings.Join(pr.ApproverNames(), ", "))
 			fmt.Println()
 		}
 	},
