@@ -86,8 +86,8 @@ func (client *Client) PendingRequests() (RankedPendingRequests, error) {
 
 	jobs := make(chan *g.MergeRequest, mergeRequestCount)
 	results := make(chan *PendingRequest, mergeRequestCount)
-	go client.approvalsWorker(jobs, results)
-	go client.approvalsWorker(jobs, results)
+	go client.approvalsWorker(1, jobs, results)
+	go client.approvalsWorker(2, jobs, results)
 
 	for _, mergeRequest := range mergeRequests {
 		jobs <- mergeRequest
@@ -112,8 +112,9 @@ func (client *Client) PendingRequests() (RankedPendingRequests, error) {
 	return approvals, nil
 }
 
-func (client *Client) approvalsWorker(jobs <-chan *g.MergeRequest, results chan<- *PendingRequest) {
+func (client *Client) approvalsWorker(id int, jobs <-chan *g.MergeRequest, results chan<- *PendingRequest) {
 	for mergeRequest := range jobs {
+		fmt.Println("worker ", id, ": mergerequest ", mergeRequest.IID)
 		approvals, _, err := client.gitlabClient.MergeRequests.GetMergeRequestApprovals(mergeRequest.ProjectID, mergeRequest.IID)
 		if err != nil {
 			log.Fatal(err)
