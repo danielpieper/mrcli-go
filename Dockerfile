@@ -11,8 +11,10 @@ RUN apk update \
     && echo "${TIMEZONE}" > /etc/timezone \
     && rm -rf /var/cache/apk/* \
     && go get github.com/cespare/reflex \
-    && echo "-r '(\.go$|go\.mod)' -- go build" > /reflex.conf \
     && wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | BINDIR=/usr/local/bin sh -s v1.17.1
+
+RUN echo "-r '(\.go$|go\.mod)' -- golangci-lint run" > /reflex.conf \
+    && echo "-r '(\.go$|go\.mod)' -- go build" >> /reflex.conf
 
 WORKDIR /build
 VOLUME ["/build"]
