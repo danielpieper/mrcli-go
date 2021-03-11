@@ -1,10 +1,9 @@
-
-# mrcli-go - GitLab pending merge requests overview [![Build Status](https://img.shields.io/travis/danielpieper/mrcli-go.svg?branch=master&style=flat-square)](https://travis-ci.org/danielpieper/mrcli-go?branch=master)
-
+[![Build Status](https://img.shields.io/travis/danielpieper/mrcli-go.svg?branch=master&style=flat-square)](https://travis-ci.org/danielpieper/mrcli-go?branch=master)
 [![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/danielpieper/mrcli-go.svg?branch=master&style=flat-square)](https://scrutinizer-ci.com/g/danielpieper/mrcli-go/?branch=master)
 [![Scrutinizer Code Quality](https://img.shields.io/scrutinizer/g/danielpieper/mrcli-go.svg?branch=master&style=flat-square)](https://scrutinizer-ci.com/g/danielpieper/mrcli-go/?branch=master)
 [![License](https://img.shields.io/badge/license-MIT-red.svg?style=flat-square)](LICENSE)
 
+# mrcli-go - GitLab pending merge requests overview 
 
 mrcli-go checks your gitlab instance for pending merge requests.
 

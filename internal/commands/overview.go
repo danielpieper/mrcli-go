@@ -1,8 +1,8 @@
-package cmd
+package commands
 
 import (
 	"fmt"
-	"github.com/danielpieper/mrcli-go/gitlab"
+	"github.com/danielpieper/mrcli-go/internal/gitlab"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"os"
